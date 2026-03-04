@@ -260,7 +260,7 @@ function buildMarkers(filtered) {
     zoomToBoundsOnClick: false,
   });
   clusterGroup.on('clusterclick', function(e) {
-    map.zoomIn(1);
+    map.setView(e.latlng, map.getZoom() + 1);
   });
   for (const p of filtered) {
     const icon = p.tipo === 'video' ? iconVideo : iconFoto;
