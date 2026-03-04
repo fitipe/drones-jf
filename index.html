@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mapa de Drones — Defesa Civil JF</title>
+<title>Pontos de Registros de Drone - Juiz de Fora</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
@@ -39,12 +39,12 @@
 </head>
 <body>
 <header>
-  <h1>Drones — Defesa Civil Juiz de Fora</h1>
+  <h1>Pontos de Registros de Drone - Juiz de Fora</h1>
   <div class="stats">
     <span>1751 registros</span>
     <span class="fotos">1427 fotos</span>
     <span class="videos">324 vídeos</span>
-    <span style="color:#607d8b">atualizado 04/03/2026 12:28</span>
+    <span style="color:#607d8b">atualizado 04/03/2026 12:33</span>
   </div>
   <div class="controls">
     <select id="filtro-tipo">
@@ -75,10 +75,11 @@ const satLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/servic
   maxZoom: 19,
   attribution: '© Esri'
 });
-const labelLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Reference_Overlay/MapServer/tile/{z}/{y}/{x}', {
-  maxZoom: 19,
-  attribution: '© Esri',
-  opacity: 1,
+const roadsLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', {
+  maxZoom: 19, attribution: '© Esri'
+});
+const labelLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+  maxZoom: 19, attribution: '© Esri'
 });
 
 const map = L.map('map', {
@@ -153,6 +154,7 @@ document.getElementById('basemap').addEventListener('change', function() {
     map.addLayer(satLayer);
   } else if (v === 'hybrid') {
     map.addLayer(satLayer);
+    map.addLayer(roadsLayer);
     map.addLayer(labelLayer);
   }
 });
