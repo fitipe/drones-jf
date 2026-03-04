@@ -44,16 +44,13 @@
     <span>1751 registros</span>
     <span class="fotos">1427 fotos</span>
     <span class="videos">324 vídeos</span>
-    <span style="color:#607d8b">atualizado 04/03/2026 12:20</span>
+    <span style="color:#607d8b">atualizado 04/03/2026 12:25</span>
   </div>
   <div class="controls">
     <select id="filtro-tipo">
       <option value="todos">Todos</option>
       <option value="foto">Fotos</option>
       <option value="video">Vídeos</option>
-    </select>
-    <select id="filtro-bairro">
-      <option value="">Todos os bairros</option>
     </select>
     <select id="basemap">
       <option value="osm">Mapa</option>
@@ -93,13 +90,13 @@ const map = L.map('map', {
 // --- Icons ---
 const iconFoto = L.divIcon({
   className: '',
-  html: '<div style="width:10px;height:10px;border-radius:50%;background:#81c784;border:2px solid #fff;box-shadow:0 0 3px rgba(0,0,0,.5)"></div>',
-  iconSize: [10,10], iconAnchor: [5,5]
+  html: '<div style="width:14px;height:14px;border-radius:50%;background:#4caf50;border:2px solid #1b5e20;box-shadow:0 1px 4px rgba(0,0,0,.7)"></div>',
+  iconSize: [14,14], iconAnchor: [7,7]
 });
 const iconVideo = L.divIcon({
   className: '',
-  html: '<div style="width:10px;height:10px;border-radius:50%;background:#ffb74d;border:2px solid #fff;box-shadow:0 0 3px rgba(0,0,0,.5)"></div>',
-  iconSize: [10,10], iconAnchor: [5,5]
+  html: '<div style="width:14px;height:14px;border-radius:50%;background:#ff9800;border:2px solid #7f3900;box-shadow:0 1px 4px rgba(0,0,0,.7)"></div>',
+  iconSize: [14,14], iconAnchor: [7,7]
 });
 
 // --- Cluster group ---
@@ -134,26 +131,14 @@ function buildMarkers(filtered) {
   map.addLayer(clusterGroup);
 }
 
-// --- Bairros dropdown ---
-const bairros = [...new Set(POINTS.map(p => p.bairro).filter(Boolean))].sort();
-const selBairro = document.getElementById('filtro-bairro');
-bairros.forEach(b => {
-  const o = document.createElement('option');
-  o.value = b; o.textContent = b;
-  selBairro.appendChild(o);
-});
-
 function applyFilter() {
   const tipo = document.getElementById('filtro-tipo').value;
-  const bairro = selBairro.value;
   let filtered = POINTS;
   if (tipo !== 'todos') filtered = filtered.filter(p => p.tipo === tipo);
-  if (bairro) filtered = filtered.filter(p => p.bairro === bairro);
   buildMarkers(filtered);
 }
 
 document.getElementById('filtro-tipo').addEventListener('change', applyFilter);
-selBairro.addEventListener('change', applyFilter);
 
 // --- Basemap switcher ---
 let currentSat = false;
