@@ -35,6 +35,23 @@
   .popup-links a:hover { background: #1e5080; }
   .badge-foto { color: #81c784; }
   .badge-video { color: #ffb74d; }
+  #search-wrap { position: relative; display: flex; gap: 4px; align-items: center; }
+  #search-input { background: #0f3460; border: 1px solid #1e5080; color: #eee; border-radius: 4px; padding: 4px 8px; font-size: 12px; width: 180px; }
+  #search-input::placeholder { color: #607d8b; }
+  #search-suggestions { position: absolute; top: 100%; left: 0; right: 0; background: #16213e; border: 1px solid #1e5080; border-top: none; border-radius: 0 0 4px 4px; z-index: 9999; max-height: 200px; overflow-y: auto; display: none; }
+  #search-suggestions div { padding: 5px 8px; font-size: 11px; cursor: pointer; border-bottom: 1px solid #0f3460; color: #ccc; }
+  #search-suggestions div:hover { background: #1e5080; color: #fff; }
+  .risco-section { display: flex; align-items: center; gap: 8px; font-size: 11px; white-space: nowrap; }
+  .risco-label { color: #eee; font-size: 11px; }
+  .risco-row + .risco-row { margin-left: 12px; }
+  .risco-row { display: flex; align-items: center; gap: 4px; }
+  .risco-row label { display: flex; align-items: center; gap: 3px; cursor: pointer; user-select: none; }
+  .risco-row input[type=checkbox] { cursor: pointer; accent-color: #4fc3f7; }
+  .dot-geo { display:inline-block; width:9px; height:9px; border-radius:50%; background:#F57C00; }
+  .dot-hidro { display:inline-block; width:9px; height:9px; border-radius:50%; background:#0097A7; }
+  .risco-legend { display: flex; gap: 4px; align-items: center; margin-left: 2px; }
+  .leg { display: inline-flex; align-items: center; gap: 2px; font-size: 10px; color: #ccc; }
+  .leg-sq { display: inline-block; width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
 </style>
 </head>
 <body>
@@ -46,7 +63,33 @@
     <span class="videos">324 vídeos</span>
     <span style="color:#607d8b">atualizado 04/03/2026 12:33</span>
   </div>
+  <div class="risco-section">
+    <span class="risco-label">Zonas de Risco:</span>
+    <div class="risco-row">
+      <label><input type="checkbox" id="toggle-geo"> <span class="dot-geo"></span> Geológico</label>
+      <div class="risco-legend" id="legend-geo">
+        <span class="leg"><span class="leg-sq" style="background:#097138"></span>R1</span>
+        <span class="leg"><span class="leg-sq" style="background:#FFEA00"></span>R2</span>
+        <span class="leg"><span class="leg-sq" style="background:#F57C00"></span>R3</span>
+        <span class="leg"><span class="leg-sq" style="background:#C2185B"></span>R4</span>
+      </div>
+    </div>
+    <div class="risco-row">
+      <label><input type="checkbox" id="toggle-hidro"> <span class="dot-hidro"></span> Hidrológico</label>
+      <div class="risco-legend" id="legend-hidro">
+        <span class="leg"><span class="leg-sq" style="background:#0097A7"></span>R1</span>
+        <span class="leg"><span class="leg-sq" style="background:#0288D1"></span>R2</span>
+        <span class="leg"><span class="leg-sq" style="background:#3949AB"></span>R3</span>
+        <span class="leg"><span class="leg-sq" style="background:#1A237E"></span>R4</span>
+      </div>
+    </div>
+  </div>
   <div class="controls">
+    <div id="search-wrap">
+      <input id="search-input" type="text" placeholder="Buscar bairro..." autocomplete="off">
+      <button id="search-btn">🔍</button>
+      <div id="search-suggestions"></div>
+    </div>
     <select id="filtro-tipo">
       <option value="todos">Todos</option>
       <option value="foto">Fotos</option>
@@ -56,6 +99,7 @@
       <option value="osm">Mapa</option>
       <option value="satellite">Satélite</option>
       <option value="hybrid">Híbrido</option>
+      <option value="relevo">Relevo</option>
     </select>
   </div>
 </header>
@@ -75,10 +119,10 @@ const satLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/servic
   maxZoom: 19,
   attribution: '© Esri'
 });
-const roadsLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', {
-  maxZoom: 19, attribution: '© Esri'
+const roadsLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
+  minZoom: 13, maxZoom: 19, attribution: '© CartoDB', pane: 'labelsPane'
 });
-const labelLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+const topoLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
   maxZoom: 19, attribution: '© Esri'
 });
 
@@ -87,6 +131,93 @@ const map = L.map('map', {
   zoom: 13,
   layers: [osmLayer]
 });
+
+map.createPane('labelsPane');
+map.getPane('labelsPane').style.zIndex = 450;
+map.getPane('labelsPane').style.pointerEvents = 'none';
+map.getPane('labelsPane').style.mixBlendMode = 'screen';
+map.getPane('labelsPane').style.filter = 'grayscale(1) invert(1) brightness(2) contrast(1.5)';
+
+let roadsGeoJSON = null;
+let roadsGeoJSONLayer = null;
+let hybridActive = false;
+const ROADS_MIN_ZOOM = 15;
+
+// Pesos base por tipo de via (em zoom 15)
+const BASE_WEIGHTS = {
+  motorway: 20, trunk: 20, motorway_link: 12, trunk_link: 12,
+  primary: 15, primary_link: 9,
+  secondary: 10, secondary_link: 7,
+  tertiary: 7, tertiary_link: 5,
+  _default: 4
+};
+
+function scaleForZoom(base) {
+  const z = map ? map.getZoom() : 15;
+  // zoom 15 = base, cresce com zoom
+  return base * Math.pow(2.0, (z - 17) / 2.5);
+}
+
+function getRoadStyle(feature) {
+  const hw = feature.properties.highway;
+  const base = BASE_WEIGHTS[hw] || BASE_WEIGHTS._default;
+  const w = scaleForZoom(base);
+  return {color:'#8a8a8a', weight:w, opacity:0.55, lineCap:'round', lineJoin:'round'};
+}
+
+function getRoadOutlineStyle(feature) {
+  const hw = feature.properties.highway;
+  const base = (BASE_WEIGHTS[hw] || BASE_WEIGHTS._default) + 1.5;
+  const w = scaleForZoom(base);
+  return {color:'rgba(0,0,0,0.4)', weight:w, opacity:1, lineCap:'round', lineJoin:'round'};
+}
+
+function loadRoadsGeoJSON(callback) {
+  if (roadsGeoJSON) { callback(); return; }
+  fetch('roads_jf.geojson')
+    .then(r => r.json())
+    .then(data => {
+      roadsGeoJSON = data;
+      callback();
+    });
+}
+
+function updateRoadsVisibility() {
+  if (!roadsGeoJSONLayer || !window._roadsOutline || !hybridActive) return;
+  const show = map.getZoom() >= ROADS_MIN_ZOOM;
+  if (show) {
+    if (!map.hasLayer(window._roadsOutline)) map.addLayer(window._roadsOutline);
+    if (!map.hasLayer(roadsGeoJSONLayer)) map.addLayer(roadsGeoJSONLayer);
+  } else {
+    if (map.hasLayer(window._roadsOutline)) map.removeLayer(window._roadsOutline);
+    if (map.hasLayer(roadsGeoJSONLayer)) map.removeLayer(roadsGeoJSONLayer);
+  }
+}
+
+function addRoadsLayer() {
+  if (roadsGeoJSONLayer) {
+    updateRoadsVisibility();
+    return;
+  }
+  loadRoadsGeoJSON(function() {
+    window._roadsOutline = L.geoJSON(roadsGeoJSON, {style: getRoadOutlineStyle, interactive: false});
+    window._roadsFill = L.geoJSON(roadsGeoJSON, {style: getRoadStyle, interactive: false});
+    roadsGeoJSONLayer = window._roadsFill;
+    updateRoadsVisibility();
+    map.on('zoomend', function() {
+      if (!hybridActive) return;
+      window._roadsOutline.setStyle(getRoadOutlineStyle);
+      window._roadsFill.setStyle(getRoadStyle);
+      updateRoadsVisibility();
+    });
+  });
+}
+
+function removeRoadsLayer() {
+  if (window._roadsOutline) map.removeLayer(window._roadsOutline);
+  if (roadsGeoJSONLayer) map.removeLayer(roadsGeoJSONLayer);
+}
+
 
 // --- Icons ---
 const iconFoto = L.divIcon({
@@ -122,6 +253,10 @@ function buildMarkers(filtered) {
     maxClusterRadius: 50,
     showCoverageOnHover: false,
     chunkedLoading: true,
+    zoomToBoundsOnClick: false,
+  });
+  clusterGroup.on('clusterclick', function(e) {
+    map.zoomIn(1);
   });
   for (const p of filtered) {
     const icon = p.tipo === 'video' ? iconVideo : iconFoto;
@@ -147,16 +282,172 @@ document.getElementById('basemap').addEventListener('change', function() {
   const v = this.value;
   map.removeLayer(osmLayer);
   map.removeLayer(satLayer);
-  map.removeLayer(labelLayer);
+
+  if (map.hasLayer(topoLayer)) map.removeLayer(topoLayer);
+
   if (v === 'osm') {
+    hybridActive = false;
     map.addLayer(osmLayer);
+    removeRoadsLayer();
+    if (map.hasLayer(roadsLayer)) map.removeLayer(roadsLayer);
   } else if (v === 'satellite') {
+    hybridActive = false;
     map.addLayer(satLayer);
+    removeRoadsLayer();
+    if (map.hasLayer(roadsLayer)) map.removeLayer(roadsLayer);
   } else if (v === 'hybrid') {
+    hybridActive = true;
     map.addLayer(satLayer);
+    addRoadsLayer();
     map.addLayer(roadsLayer);
-    map.addLayer(labelLayer);
+  } else if (v === 'relevo') {
+    hybridActive = false;
+    map.addLayer(topoLayer);
+    removeRoadsLayer();
+    if (map.hasLayer(roadsLayer)) map.removeLayer(roadsLayer);
   }
+});
+
+// --- Zonas de Risco ---
+const riscoLayers = { geo: null, hidro: null };
+const riscoLoaded = { geo: false, hidro: false };
+
+function riscoStyle(feature) {
+  const color = feature.properties.color || '#9E9E9E';
+  return { color, weight: 1.5, opacity: 0.9, fillColor: color, fillOpacity: 0.25 };
+}
+
+function riscoPopup(feature) {
+  const p = feature.properties;
+  const r = p.risco || '?';
+  const color = p.color || '#9E9E9E';
+  return `<b style="color:${color}">${r}</b> — ${p.processo || p.proc_hidro || ''}
+<br><small>${p.bairro || ''} ${p.regiao ? '/ ' + p.regiao : ''}</small>
+${p.populacao ? '<br><small>Pop: ' + p.populacao + ' | Ed: ' + (p.no_edifica || '?') + '</small>' : ''}`;
+}
+
+function loadRiscoLayer(tipo, callback) {
+  if (riscoLoaded[tipo]) { callback(); return; }
+  fetch(`risco_${tipo}.geojson`)
+    .then(r => r.json())
+    .then(data => {
+      riscoLayers[tipo] = L.geoJSON(data, {
+        style: riscoStyle,
+        onEachFeature: (f, layer) => layer.bindPopup(riscoPopup(f), { maxWidth: 240 })
+      });
+      riscoLoaded[tipo] = true;
+      callback();
+    });
+}
+
+document.getElementById('toggle-geo').addEventListener('change', function() {
+  if (this.checked) {
+    loadRiscoLayer('geo', () => riscoLayers['geo'].addTo(map));
+  } else if (riscoLayers['geo']) {
+    map.removeLayer(riscoLayers['geo']);
+  }
+});
+
+document.getElementById('toggle-hidro').addEventListener('change', function() {
+  if (this.checked) {
+    loadRiscoLayer('hidro', () => riscoLayers['hidro'].addTo(map));
+  } else if (riscoLayers['hidro']) {
+    map.removeLayer(riscoLayers['hidro']);
+  }
+});
+
+// --- Busca local por bairro ---
+// Índice: bairro normalizado → { label, lat, lon, count }
+const bairroIndex = {};
+for (const p of POINTS) {
+  if (!p.bairro) continue;
+  const key = p.bairro.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+  if (!bairroIndex[key]) bairroIndex[key] = { label: p.bairro, lat: 0, lon: 0, count: 0 };
+  bairroIndex[key].lat += p.lat;
+  bairroIndex[key].lon += p.lon;
+  bairroIndex[key].count++;
+}
+// Calcula centroides
+const bairros = Object.values(bairroIndex).map(b => ({
+  label: b.label, lat: b.lat / b.count, lon: b.lon / b.count, count: b.count
+})).sort((a, b) => a.label.localeCompare(b.label));
+
+function normalize(s) {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+}
+
+function fuzzyScore(query, target) {
+  // Substring direto = score alto; senão, conta chars em comum
+  if (target.includes(query)) return 100 + (100 - target.length);
+  let score = 0, ti = 0;
+  for (const ch of query) {
+    const idx = target.indexOf(ch, ti);
+    if (idx !== -1) { score++; ti = idx + 1; }
+  }
+  return score > query.length * 0.6 ? score : 0;
+}
+
+function searchBairros(q) {
+  const nq = normalize(q);
+  return bairros
+    .map(b => ({ ...b, score: fuzzyScore(nq, normalize(b.label)) }))
+    .filter(b => b.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 6);
+}
+
+const searchInput = document.getElementById('search-input');
+const searchSuggestions = document.getElementById('search-suggestions');
+
+function hideSuggestions() { searchSuggestions.style.display = 'none'; }
+
+function showSuggestions(results) {
+  if (!results.length) { hideSuggestions(); return; }
+  searchSuggestions.innerHTML = '';
+  results.forEach(b => {
+    const div = document.createElement('div');
+    div.textContent = `${b.label} (${b.count})`;
+    div.addEventListener('mousedown', e => {
+      e.preventDefault();
+      map.flyTo([b.lat, b.lon], 15, { duration: 1.2 });
+      searchInput.value = b.label;
+      hideSuggestions();
+    });
+    searchSuggestions.appendChild(div);
+  });
+  searchSuggestions.style.display = 'block';
+}
+
+searchInput.addEventListener('input', function() {
+  const q = this.value.trim();
+  if (q.length < 2) { hideSuggestions(); return; }
+  showSuggestions(searchBairros(q));
+});
+
+searchInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    const results = searchBairros(this.value.trim());
+    if (results.length) {
+      map.flyTo([results[0].lat, results[0].lon], 15, { duration: 1.2 });
+      this.value = results[0].label;
+    }
+    hideSuggestions();
+  } else if (e.key === 'Escape') {
+    hideSuggestions();
+  }
+});
+
+document.getElementById('search-btn').addEventListener('click', function() {
+  const results = searchBairros(searchInput.value.trim());
+  if (results.length) {
+    map.flyTo([results[0].lat, results[0].lon], 15, { duration: 1.2 });
+    searchInput.value = results[0].label;
+  }
+  hideSuggestions();
+});
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#search-wrap')) hideSuggestions();
 });
 
 // --- Init ---
