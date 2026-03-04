@@ -35,12 +35,14 @@
   .popup-links a:hover { background: #1e5080; }
   .badge-foto { color: #81c784; }
   .badge-video { color: #ffb74d; }
+  /* BUSCA — comentado até melhorar geocoding
   #search-wrap { position: relative; display: flex; gap: 4px; align-items: center; }
   #search-input { background: #0f3460; border: 1px solid #1e5080; color: #eee; border-radius: 4px; padding: 4px 8px; font-size: 12px; width: 180px; }
   #search-input::placeholder { color: #607d8b; }
   #search-suggestions { position: absolute; top: 100%; left: 0; right: 0; background: #16213e; border: 1px solid #1e5080; border-top: none; border-radius: 0 0 4px 4px; z-index: 9999; max-height: 200px; overflow-y: auto; display: none; }
   #search-suggestions div { padding: 5px 8px; font-size: 11px; cursor: pointer; border-bottom: 1px solid #0f3460; color: #ccc; }
   #search-suggestions div:hover { background: #1e5080; color: #fff; }
+  */
   .risco-section { display: flex; align-items: center; gap: 8px; font-size: 11px; white-space: nowrap; }
   .risco-label { color: #eee; font-size: 11px; }
   .risco-row + .risco-row { margin-left: 12px; }
@@ -85,11 +87,13 @@
     </div>
   </div>
   <div class="controls">
+    <!-- BUSCA comentada até melhorar geocoding
     <div id="search-wrap">
       <input id="search-input" type="text" placeholder="Buscar bairro..." autocomplete="off">
       <button id="search-btn">🔍</button>
       <div id="search-suggestions"></div>
     </div>
+    -->
     <select id="filtro-tipo">
       <option value="todos">Todos</option>
       <option value="foto">Fotos</option>
@@ -356,8 +360,8 @@ document.getElementById('toggle-hidro').addEventListener('change', function() {
   }
 });
 
+/* BUSCA comentada até melhorar geocoding
 // --- Busca local por bairro ---
-// Índice: bairro normalizado → { label, lat, lon, count }
 const bairroIndex = {};
 for (const p of POINTS) {
   if (!p.bairro) continue;
@@ -367,88 +371,45 @@ for (const p of POINTS) {
   bairroIndex[key].lon += p.lon;
   bairroIndex[key].count++;
 }
-// Calcula centroides
 const bairros = Object.values(bairroIndex).map(b => ({
   label: b.label, lat: b.lat / b.count, lon: b.lon / b.count, count: b.count
 })).sort((a, b) => a.label.localeCompare(b.label));
-
-function normalize(s) {
-  return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
-}
-
+function normalize(s) { return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim(); }
 function fuzzyScore(query, target) {
-  // Substring direto = score alto; senão, conta chars em comum
   if (target.includes(query)) return 100 + (100 - target.length);
   let score = 0, ti = 0;
-  for (const ch of query) {
-    const idx = target.indexOf(ch, ti);
-    if (idx !== -1) { score++; ti = idx + 1; }
-  }
+  for (const ch of query) { const idx = target.indexOf(ch, ti); if (idx !== -1) { score++; ti = idx + 1; } }
   return score > query.length * 0.6 ? score : 0;
 }
-
 function searchBairros(q) {
   const nq = normalize(q);
-  return bairros
-    .map(b => ({ ...b, score: fuzzyScore(nq, normalize(b.label)) }))
-    .filter(b => b.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 6);
+  return bairros.map(b => ({ ...b, score: fuzzyScore(nq, normalize(b.label)) }))
+    .filter(b => b.score > 0).sort((a, b) => b.score - a.score).slice(0, 6);
 }
-
 const searchInput = document.getElementById('search-input');
 const searchSuggestions = document.getElementById('search-suggestions');
-
 function hideSuggestions() { searchSuggestions.style.display = 'none'; }
-
 function showSuggestions(results) {
   if (!results.length) { hideSuggestions(); return; }
   searchSuggestions.innerHTML = '';
   results.forEach(b => {
     const div = document.createElement('div');
     div.textContent = `${b.label} (${b.count})`;
-    div.addEventListener('mousedown', e => {
-      e.preventDefault();
-      map.flyTo([b.lat, b.lon], 15, { duration: 1.2 });
-      searchInput.value = b.label;
-      hideSuggestions();
-    });
+    div.addEventListener('mousedown', e => { e.preventDefault(); map.flyTo([b.lat, b.lon], 15, { duration: 1.2 }); searchInput.value = b.label; hideSuggestions(); });
     searchSuggestions.appendChild(div);
   });
   searchSuggestions.style.display = 'block';
 }
-
-searchInput.addEventListener('input', function() {
-  const q = this.value.trim();
-  if (q.length < 2) { hideSuggestions(); return; }
-  showSuggestions(searchBairros(q));
-});
-
+searchInput.addEventListener('input', function() { const q = this.value.trim(); if (q.length < 2) { hideSuggestions(); return; } showSuggestions(searchBairros(q)); });
 searchInput.addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') {
-    const results = searchBairros(this.value.trim());
-    if (results.length) {
-      map.flyTo([results[0].lat, results[0].lon], 15, { duration: 1.2 });
-      this.value = results[0].label;
-    }
-    hideSuggestions();
-  } else if (e.key === 'Escape') {
-    hideSuggestions();
-  }
+  if (e.key === 'Enter') { const r = searchBairros(this.value.trim()); if (r.length) { map.flyTo([r[0].lat, r[0].lon], 15, { duration: 1.2 }); this.value = r[0].label; } hideSuggestions(); }
+  else if (e.key === 'Escape') hideSuggestions();
 });
-
 document.getElementById('search-btn').addEventListener('click', function() {
-  const results = searchBairros(searchInput.value.trim());
-  if (results.length) {
-    map.flyTo([results[0].lat, results[0].lon], 15, { duration: 1.2 });
-    searchInput.value = results[0].label;
-  }
-  hideSuggestions();
+  const r = searchBairros(searchInput.value.trim()); if (r.length) { map.flyTo([r[0].lat, r[0].lon], 15, { duration: 1.2 }); searchInput.value = r[0].label; } hideSuggestions();
 });
-
-document.addEventListener('click', e => {
-  if (!e.target.closest('#search-wrap')) hideSuggestions();
-});
+document.addEventListener('click', e => { if (!e.target.closest('#search-wrap')) hideSuggestions(); });
+*/
 
 // --- Init ---
 buildMarkers(POINTS);
