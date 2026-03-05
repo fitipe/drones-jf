@@ -270,8 +270,13 @@ function buildMarkers(filtered) {
     zoomToBoundsOnClick: false,
   });
   clusterGroup.on('clusterclick', function(e) {
-    map.setView(e.latlng, map.getZoom() + 1);
+    if (map.getZoom() >= map.getMaxZoom() - 2) {
+      e.layer.spiderfy();
+    } else {
+      map.setView(e.latlng, map.getZoom() + 1);
+    }
   });
+
   for (const p of filtered) {
     const icon = p.tipo === 'video' ? iconVideo : iconFoto;
     const marker = L.marker([p.lat, p.lon], {icon});
