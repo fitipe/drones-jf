@@ -22,8 +22,9 @@
   .filtro-btn .grifo { color: #fff; padding: 0 2px; border-radius: 1px; }
   .filtro-btn.fotos .grifo { background: #1565C0; }
   .filtro-btn.videos .grifo { background: #B5154E; }
-  .filtro-btn:has(input:not(:checked)) { opacity: 0.35; }
+
   #map-controls { position: absolute; top: 7px; right: 10px; z-index: 900; display: flex; gap: 6px; align-items: center; }
+  #mobile-controls { display: none; }
   #map-controls select, #map-controls button, #search-input { height: 28px; box-sizing: border-box; }
   select, button {
     background: #0f3460; border: 1px solid #1e5080; color: #eee;
@@ -70,16 +71,15 @@
     header { flex-direction: column; align-items: flex-start; gap: 3px; padding: 5px 8px; }
     header h1 { font-size: clamp(10px, 2.7vw, 13px); font-weight: 500; color: #90a4ae; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; text-align: center; }
     .sep { display: none; }
-    .stats-row { flex-direction: column; gap: 3px; width: 100%; }
+    .stats-row { flex-direction: column; gap: 3px; width: 100%; align-items: center; }
     .stats { font-size: clamp(9px, 2.4vw, 11px); white-space: nowrap; }
-    .filtros { font-size: clamp(8px, 2vw, 9.5px); gap: clamp(3px, 1.2vw, 6px); }
-    .filtro-btn { white-space: nowrap; font-size: inherit; }
-    .risco-section { width: 100%; flex-wrap: nowrap; gap: clamp(3px, 1.2vw, 5px); font-size: clamp(8.5px, 2.2vw, 10.5px); align-items: center; }
-    .risco-label { display: inline; flex-shrink: 0; font-size: inherit; }
-    .risco-row { flex-wrap: nowrap; margin-left: 0; flex-shrink: 0; }
-    .risco-row + .risco-row { margin-left: clamp(3px, 1.2vw, 5px); }
-    .leg { font-size: inherit; }
-    .risco-legend { gap: 2px; margin-left: 1px; }
+    .filtros { display: none; }
+    .risco-section { display: none; }
+    #mobile-controls { display: flex; flex-direction: column; gap: 4px; width: 100%; }
+    .mobile-ctrl-label { font-size: clamp(10px, 2.5vw, 12px); color: #90a4ae; text-align: center; width: 100%; }
+    #total-pts, #ts-time, #ts-date { color: #a09080 !important; }
+    .mobile-ctrl-row { display: flex; gap: 6px; width: 100%; }
+    .mobile-ctrl-row select { flex: 1; font-size: 14px; height: 37px; min-width: 0; }
     #search-input { width: 60vw; min-width: 120px; max-width: 255px; }
     #map-controls { top: 6px; right: 6px; gap: 4px; }
     .leaflet-top.leaflet-left { top: 30px; }
@@ -100,11 +100,28 @@
   <span class="sep">|</span>
   <div class="stats-row">
     <div class="stats">
-      <span><span id="total-pts" style="color:#b0bec5">2153</span> pontos<span class="ts"> atualizados às <span style="color:#b0bec5">21:44 de 05/03/2026</span></span></span>
+      <span><span id="total-pts" style="color:#b0bec5">2153</span> pontos<span class="ts"> atualizados às <span id="ts-time" style="color:#b0bec5">21:44</span> de <span id="ts-date" style="color:#b0bec5">05/03/2026</span></span></span>
     </div>
     <div class="filtros">
       <label class="filtro-btn fotos"><input type="checkbox" id="filtro-foto" checked><span class="grifo"><span id="total-fotos">1807</span> fotos</span></label>
       <label class="filtro-btn videos"><input type="checkbox" id="filtro-video" checked><span class="grifo"><span id="total-videos">346</span> vídeos</span></label>
+    </div>
+  </div>
+  <div id="mobile-controls">
+    <span class="mobile-ctrl-label">Mostrar no Mapa:</span>
+    <div class="mobile-ctrl-row">
+      <select id="sel-tipo">
+        <option value="ambos">Fotos e Vídeos</option>
+        <option value="foto">Só Fotos</option>
+        <option value="video">Só Vídeos</option>
+        <option value="nenhum">Nenhum</option>
+      </select>
+      <select id="sel-risco">
+        <option value="nenhum">Nenhuma Zona de Risco</option>
+        <option value="geo">Risco Geológico</option>
+        <option value="hidro">Risco Hidrológico</option>
+        <option value="ambos">Ambas Zonas de Risco</option>
+      </select>
     </div>
   </div>
   <span class="sep">|</span>
@@ -350,6 +367,23 @@ function applyFilter() {
 
 document.getElementById('filtro-foto').addEventListener('change', applyFilter);
 document.getElementById('filtro-video').addEventListener('change', applyFilter);
+
+// --- Mobile dropdowns ---
+document.getElementById('sel-tipo').addEventListener('change', function() {
+  const v = this.value;
+  document.getElementById('filtro-foto').checked = (v === 'ambos' || v === 'foto');
+  document.getElementById('filtro-video').checked = (v === 'ambos' || v === 'video');
+  applyFilter();
+});
+document.getElementById('sel-risco').addEventListener('change', function() {
+  const v = this.value;
+  const geoChk = document.getElementById('toggle-geo');
+  const hidroChk = document.getElementById('toggle-hidro');
+  const wantGeo = (v === 'geo' || v === 'ambos');
+  const wantHidro = (v === 'hidro' || v === 'ambos');
+  if (geoChk.checked !== wantGeo) { geoChk.checked = wantGeo; geoChk.dispatchEvent(new Event('change')); }
+  if (hidroChk.checked !== wantHidro) { hidroChk.checked = wantHidro; hidroChk.dispatchEvent(new Event('change')); }
+});
 
 // --- Basemap switcher ---
 let currentSat = false;
