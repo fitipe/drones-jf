@@ -16,6 +16,7 @@
   .stats { font-size: 12px; color: #90a4ae; display: flex; align-items: center; gap: 10px; }
   .stats span { display: flex; align-items: center; gap: 3px; }
   .sep { color: #b0bec5; padding: 0 6px; flex-shrink: 0; }
+  .stats-row { display: flex; align-items: center; gap: 12px; }
   .filtros { display: flex; align-items: center; gap: 8px; }
   .filtro-btn { background: transparent; padding: 0; cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; user-select: none; }
   .filtro-btn .grifo { color: #fff; padding: 0 2px; border-radius: 1px; }
@@ -66,13 +67,30 @@
   .leg { display: inline-flex; align-items: center; gap: 2px; font-size: 11px; color: #ccc; }
   .leg-sq { display: inline-block; width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
   @media (max-width: 640px) {
-    header { gap: 6px; padding: 6px 10px; }
-    header h1 { font-size: 13px; }
-    .stats { font-size: 11px; }
-    .risco-section { white-space: normal; flex-wrap: wrap; gap: 4px; }
-    .risco-row { flex-wrap: nowrap; }
-    .risco-row + .risco-row { margin-left: 0; }
-    .controls { gap: 6px; }
+    header { flex-direction: column; align-items: flex-start; gap: 3px; padding: 5px 8px; }
+    header h1 { font-size: clamp(10px, 2.7vw, 13px); font-weight: 500; color: #90a4ae; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; text-align: center; }
+    .sep { display: none; }
+    .stats-row { flex-direction: column; gap: 3px; width: 100%; }
+    .stats { font-size: clamp(9px, 2.4vw, 11px); white-space: nowrap; }
+    .filtros { font-size: clamp(8px, 2vw, 9.5px); gap: clamp(3px, 1.2vw, 6px); }
+    .filtro-btn { white-space: nowrap; font-size: inherit; }
+    .risco-section { width: 100%; flex-wrap: nowrap; gap: clamp(3px, 1.2vw, 5px); font-size: clamp(8.5px, 2.2vw, 10.5px); align-items: center; }
+    .risco-label { display: inline; flex-shrink: 0; font-size: inherit; }
+    .risco-row { flex-wrap: nowrap; margin-left: 0; flex-shrink: 0; }
+    .risco-row + .risco-row { margin-left: clamp(3px, 1.2vw, 5px); }
+    .leg { font-size: inherit; }
+    .risco-legend { gap: 2px; margin-left: 1px; }
+    #search-input { width: 60vw; min-width: 120px; max-width: 255px; }
+    #map-controls { top: 6px; right: 6px; gap: 4px; }
+    .leaflet-top.leaflet-left { top: 30px; }
+    #basemap { max-width: 80px; }
+    .leaflet-popup-content { min-width: unset; max-width: calc(100vw - 50px); font-size: 13px; }
+    .popup-title { font-size: 13px; }
+  }
+  @media (min-width: 641px) {
+    .stats-row { display: contents; }
+    header { justify-content: space-between; }
+    .sep { display: none; }
   }
 </style>
 </head>
@@ -80,17 +98,18 @@
 <header>
   <h1>Mapa de Registros Geolocalizados - Juiz de Fora</h1>
   <span class="sep">|</span>
-  <div class="stats">
-    <span><span id="total-pts" style="color:#b0bec5">2153</span> pontos atualizados às <span style="color:#b0bec5">21:44 de 05/03/2026</span></span>
-  </div>
-  <span class="sep">|</span>
-  <div class="filtros">
-    <label class="filtro-btn fotos"><input type="checkbox" id="filtro-foto" checked><span class="grifo"><span id="total-fotos">1807</span> fotos</span></label>
-    <label class="filtro-btn videos"><input type="checkbox" id="filtro-video" checked><span class="grifo"><span id="total-videos">346</span> vídeos</span></label>
+  <div class="stats-row">
+    <div class="stats">
+      <span><span id="total-pts" style="color:#b0bec5">2153</span> pontos<span class="ts"> atualizados às <span style="color:#b0bec5">21:44 de 05/03/2026</span></span></span>
+    </div>
+    <div class="filtros">
+      <label class="filtro-btn fotos"><input type="checkbox" id="filtro-foto" checked><span class="grifo"><span id="total-fotos">1807</span> fotos</span></label>
+      <label class="filtro-btn videos"><input type="checkbox" id="filtro-video" checked><span class="grifo"><span id="total-videos">346</span> vídeos</span></label>
+    </div>
   </div>
   <span class="sep">|</span>
   <div class="risco-section">
-    <span class="risco-label">Zonas de Risco:</span>
+    <span class="risco-label">Riscos:</span>
     <div class="risco-row">
       <label><input type="checkbox" id="toggle-geo"> Geológico</label>
       <div class="risco-legend" id="legend-geo">
