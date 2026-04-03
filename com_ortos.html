@@ -193,23 +193,24 @@ const POINTS = [{"id":1,"arquivo":"DJI_0134.MP4","bairro":"Acesso Norte-Videos",
 
 // --- Basemaps ---
 const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 19,
+  maxNativeZoom: 19, maxZoom: 21,
   attribution: '© OpenStreetMap'
 });
 const satLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-  maxZoom: 19,
+  maxNativeZoom: 19, maxZoom: 21,
   attribution: '© Esri'
 });
 const roadsLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
-  minZoom: 13, maxZoom: 19, attribution: '© CartoDB', pane: 'labelsPane'
+  minZoom: 13, maxNativeZoom: 19, maxZoom: 21, attribution: '© CartoDB', pane: 'labelsPane'
 });
 const topoLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
-  maxZoom: 19, attribution: '© Esri'
+  maxNativeZoom: 19, maxZoom: 21, attribution: '© Esri'
 });
 
 const map = L.map('map', {
   center: [-21.762, -43.35],
   zoom: 13,
+  maxZoom: 21,
   layers: [osmLayer]
 });
 
