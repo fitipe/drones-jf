@@ -110,6 +110,13 @@
   #orto-status-text { font-size: 11px; color: #90a4ae; text-align: center; display: none; }
   #ortofoto-opacity-row { display: none; }
   #ortofoto-opacity-row .ortofoto-opacity-label { font-size: 11px; color: #90a4ae; display: flex; justify-content: space-between; }
+  #orto-toggles { display: none; flex-direction: column; gap: 4px; }
+  #orto-toggles label {
+    font-size: 11px; color: #b0bec5; display: flex; align-items: center; gap: 6px; cursor: pointer;
+    padding: 2px 0; user-select: none;
+  }
+  #orto-toggles label:hover { color: #e0e0e0; }
+  #orto-toggles input[type=checkbox] { accent-color: #4fc3f7; margin: 0; flex-shrink: 0; }
   #orto-dropdown input[type=range] {
     width: 100%; accent-color: #4fc3f7; -webkit-appearance: none; appearance: none;
     height: 6px; background: #1e5080; border-radius: 3px; outline: none; touch-action: none;
@@ -192,6 +199,7 @@
   <div id="orto-dropdown">
     <button id="btn-aplicar-ortos">Aplicar Ortofotos Disponíveis</button>
     <div id="orto-status-text"></div>
+    <div id="orto-toggles"></div>
     <div id="ortofoto-opacity-row">
       <div class="ortofoto-opacity-label"><span>Opacidade</span><span id="opacity-val">100%</span></div>
       <input type="range" id="ortofoto-opacity" min="0" max="100" value="100">
@@ -593,6 +601,7 @@ const btnOrtofoto = document.getElementById('btn-ortofoto');
 const ortoDropdown = document.getElementById('orto-dropdown');
 const btnAplicar = document.getElementById('btn-aplicar-ortos');
 const ortoStatusText = document.getElementById('orto-status-text');
+const ortoTogglesDiv = document.getElementById('orto-toggles');
 const ortoOpacityRow = document.getElementById('ortofoto-opacity-row');
 const ortoOpacitySlider = document.getElementById('ortofoto-opacity');
 
@@ -640,6 +649,7 @@ async function ativarOrtofotos() {
   }
 
   const opacity = ortoOpacitySlider.value / 100;
+  ortoTogglesDiv.innerHTML = '';
   for (let i = 0; i < ortoCatalog.length; i++) {
     const o = ortoCatalog[i];
     ortoStatusText.textContent = `Carregando ${i + 1}/${ortoCatalog.length}: ${o.nome}`;
@@ -649,11 +659,27 @@ async function ativarOrtofotos() {
       { opacity, pane: 'ortoPane', crossOrigin: true }
     );
     layer.addTo(map);
-    ortoLayers.push(layer);
+    ortoLayers.push({ layer, visible: true });
+
+    const label = document.createElement('label');
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = true;
+    cb.dataset.idx = i;
+    cb.addEventListener('change', function() {
+      const entry = ortoLayers[this.dataset.idx];
+      if (this.checked) { entry.layer.addTo(map); entry.visible = true; }
+      else { map.removeLayer(entry.layer); entry.visible = false; }
+    });
+    label.appendChild(cb);
+    label.appendChild(document.createTextNode(o.nome));
+    ortoTogglesDiv.appendChild(label);
+
     await new Promise(r => setTimeout(r, 0));
   }
 
   ortoStatusText.textContent = `${ortoCatalog.length} ortofotos ativas`;
+  ortoTogglesDiv.style.display = 'flex';
   ortoOpacityRow.style.display = 'block';
 }
 
@@ -662,9 +688,11 @@ function desativarOrtofotos() {
   btnOrtofoto.classList.remove('active');
   btnAplicar.classList.remove('active');
   btnAplicar.textContent = 'Aplicar Ortofotos Disponíveis';
-  ortoLayers.forEach(l => map.removeLayer(l));
+  ortoLayers.forEach(o => map.removeLayer(o.layer));
   ortoLayers = [];
   ortoOpacityRow.style.display = 'none';
+  ortoTogglesDiv.style.display = 'none';
+  ortoTogglesDiv.innerHTML = '';
   ortoStatusText.style.display = 'none';
   ortoStatusText.textContent = '';
 }
@@ -677,7 +705,7 @@ btnAplicar.addEventListener('click', () => {
 ortoOpacitySlider.addEventListener('input', function() {
   const val = this.value / 100;
   document.getElementById('opacity-val').textContent = this.value + '%';
-  ortoLayers.forEach(l => l.setOpacity(val));
+  ortoLayers.forEach(o => o.layer.setOpacity(val));
 });
 </script>
 </body>
