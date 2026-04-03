@@ -94,19 +94,23 @@
   }
 
   /* Ortofotos */
-  #ortofoto-panel {
-    position: absolute; bottom: 28px; right: 10px; z-index: 900;
-    background: #16213e; border: 1px solid #1e5080; border-radius: 6px;
-    padding: 10px 12px; min-width: 210px; display: none; flex-direction: column; gap: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.5);
-  }
-  #ortofoto-panel.visible { display: flex; }
-  #ortofoto-panel input[type=range] { width: 100%; accent-color: #4fc3f7; }
-  #ortofoto-opacity-label { font-size: 11px; color: #90a4ae; display: flex; justify-content: space-between; }
   #btn-ortofoto { background: #0f3460; border: 1px solid #1e5080; color: #4fc3f7; border-radius: 4px; padding: 4px 8px; font-size: 12px; cursor: pointer; height: 28px; }
   #btn-ortofoto:hover { background: #1e5080; }
   #btn-ortofoto.active { background: #1a4a2e; border-color: #4caf50; color: #81c784; }
-  #ortofoto-status { font-size: 11px; color: #90a4ae; text-align: center; }
+  #orto-dropdown {
+    position: absolute; top: 42px; right: 10px; z-index: 900;
+    background: #16213e; border: 1px solid #1e5080; border-radius: 6px;
+    padding: 8px 10px; display: none; flex-direction: column; gap: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.5); min-width: 200px;
+  }
+  #orto-dropdown.visible { display: flex; }
+  #btn-aplicar-ortos { background: #0f3460; border: 1px solid #1e5080; color: #4fc3f7; border-radius: 4px; padding: 5px 8px; font-size: 12px; cursor: pointer; width: 100%; }
+  #btn-aplicar-ortos:hover { background: #1e5080; }
+  #btn-aplicar-ortos.active { background: #1a4a2e; border-color: #4caf50; color: #81c784; }
+  #orto-status-text { font-size: 11px; color: #90a4ae; text-align: center; display: none; }
+  #ortofoto-opacity-row { display: none; }
+  #ortofoto-opacity-row .ortofoto-opacity-label { font-size: 11px; color: #90a4ae; display: flex; justify-content: space-between; }
+  #orto-dropdown input[type=range] { width: 100%; accent-color: #4fc3f7; }
 </style>
 </head>
 <body>
@@ -177,9 +181,10 @@
     </select>
     <button id="btn-ortofoto">Ortofotos</button>
   </div>
-  <div id="ortofoto-panel">
-    <div id="ortofoto-status">Clique para ativar</div>
-    <div id="ortofoto-opacity-row" style="display:none">
+  <div id="orto-dropdown">
+    <button id="btn-aplicar-ortos">Aplicar Ortofotos Disponíveis</button>
+    <div id="orto-status-text"></div>
+    <div id="ortofoto-opacity-row">
       <div class="ortofoto-opacity-label"><span>Opacidade</span><span id="opacity-val">100%</span></div>
       <input type="range" id="ortofoto-opacity" min="0" max="100" value="100">
     </div>
@@ -577,8 +582,9 @@ let ortoLayers = [];
 let ortoCatalog = null;
 
 const btnOrtofoto = document.getElementById('btn-ortofoto');
-const ortoPanel = document.getElementById('ortofoto-panel');
-const ortoStatus = document.getElementById('ortofoto-status');
+const ortoDropdown = document.getElementById('orto-dropdown');
+const btnAplicar = document.getElementById('btn-aplicar-ortos');
+const ortoStatusText = document.getElementById('orto-status-text');
 const ortoOpacityRow = document.getElementById('ortofoto-opacity-row');
 const ortoOpacitySlider = document.getElementById('ortofoto-opacity');
 
@@ -587,22 +593,38 @@ map.createPane('ortoPane');
 map.getPane('ortoPane').style.zIndex = 450;
 map.getPane('ortoPane').style.pointerEvents = 'none';
 
+// Impede que cliques/drag no dropdown se propaguem para o mapa
+L.DomEvent.disableClickPropagation(ortoDropdown);
+L.DomEvent.disableScrollPropagation(ortoDropdown);
+ortoDropdown.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+ortoDropdown.addEventListener('touchstart', function(e) { e.stopPropagation(); }, { passive: true });
+
 btnOrtofoto.addEventListener('click', function() {
-  ortoPanel.classList.toggle('visible');
+  ortoDropdown.classList.toggle('visible');
+});
+
+// Fecha dropdown ao clicar fora
+document.addEventListener('click', function(e) {
+  if (!ortoDropdown.contains(e.target) && e.target !== btnOrtofoto) {
+    ortoDropdown.classList.remove('visible');
+  }
 });
 
 async function ativarOrtofotos() {
   ortoAtivo = true;
   btnOrtofoto.classList.add('active');
+  btnAplicar.classList.add('active');
+  btnAplicar.textContent = 'Desativar Ortofotos';
   ortoOpacityRow.style.display = 'none';
+  ortoStatusText.style.display = 'block';
 
   if (!ortoCatalog) {
-    ortoStatus.textContent = 'Carregando catálogo...';
+    ortoStatusText.textContent = 'Carregando catálogo...';
     try {
       const resp = await fetch('ortofotos/catalog.json');
       ortoCatalog = await resp.json();
     } catch (err) {
-      ortoStatus.textContent = 'Erro ao carregar catálogo';
+      ortoStatusText.textContent = 'Erro ao carregar catálogo';
       console.error(err);
       return;
     }
@@ -611,7 +633,7 @@ async function ativarOrtofotos() {
   const opacity = ortoOpacitySlider.value / 100;
   for (let i = 0; i < ortoCatalog.length; i++) {
     const o = ortoCatalog[i];
-    ortoStatus.textContent = `Carregando ${i + 1}/${ortoCatalog.length}: ${o.nome}`;
+    ortoStatusText.textContent = `Carregando ${i + 1}/${ortoCatalog.length}: ${o.nome}`;
     const layer = L.imageOverlay(
       o.png,
       o.bounds,
@@ -619,25 +641,26 @@ async function ativarOrtofotos() {
     );
     layer.addTo(map);
     ortoLayers.push(layer);
-    // yield para o browser não travar
     await new Promise(r => setTimeout(r, 0));
   }
 
-  ortoStatus.textContent = `${ortoCatalog.length} ortofotos ativas`;
+  ortoStatusText.textContent = `${ortoCatalog.length} ortofotos ativas`;
   ortoOpacityRow.style.display = 'block';
 }
 
 function desativarOrtofotos() {
   ortoAtivo = false;
   btnOrtofoto.classList.remove('active');
+  btnAplicar.classList.remove('active');
+  btnAplicar.textContent = 'Aplicar Ortofotos Disponíveis';
   ortoLayers.forEach(l => map.removeLayer(l));
   ortoLayers = [];
   ortoOpacityRow.style.display = 'none';
-  ortoStatus.textContent = 'Clique para ativar';
+  ortoStatusText.style.display = 'none';
+  ortoStatusText.textContent = '';
 }
 
-ortoStatus.style.cursor = 'pointer';
-ortoStatus.addEventListener('click', () => {
+btnAplicar.addEventListener('click', () => {
   if (ortoAtivo) desativarOrtofotos();
   else ativarOrtofotos();
 });
