@@ -110,7 +110,15 @@
   #orto-status-text { font-size: 11px; color: #90a4ae; text-align: center; display: none; }
   #ortofoto-opacity-row { display: none; }
   #ortofoto-opacity-row .ortofoto-opacity-label { font-size: 11px; color: #90a4ae; display: flex; justify-content: space-between; }
-  #orto-dropdown input[type=range] { width: 100%; accent-color: #4fc3f7; }
+  #orto-dropdown input[type=range] {
+    width: 100%; accent-color: #4fc3f7; -webkit-appearance: none; appearance: none;
+    height: 6px; background: #1e5080; border-radius: 3px; outline: none; touch-action: none;
+  }
+  #orto-dropdown input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: #4fc3f7; cursor: pointer; border: none;
+  }
 </style>
 </head>
 <body>
@@ -598,6 +606,7 @@ L.DomEvent.disableClickPropagation(ortoDropdown);
 L.DomEvent.disableScrollPropagation(ortoDropdown);
 ortoDropdown.addEventListener('mousedown', function(e) { e.stopPropagation(); });
 ortoDropdown.addEventListener('touchstart', function(e) { e.stopPropagation(); }, { passive: true });
+ortoDropdown.addEventListener('dragstart', function(e) { e.preventDefault(); });
 
 btnOrtofoto.addEventListener('click', function() {
   ortoDropdown.classList.toggle('visible');
