@@ -1,0 +1,77 @@
+[
+  {
+    "nome": "Eldorado — Dr. Sebastião de Andrade",
+    "id": "eldorado_sebastiao",
+    "png": "ortofotos/eldorado_sebastiao.png",
+    "bounds": [
+      [
+        -21.731895727401586,
+        -43.36791474117865
+      ],
+      [
+        -21.72908126457892,
+        -43.365753771335264
+      ]
+    ]
+  },
+  {
+    "nome": "Retiro — Av. Francisco Alvares de Assis",
+    "id": "retiro_francisco",
+    "png": "ortofotos/retiro_francisco.png",
+    "bounds": [
+      [
+        -21.78068851119626,
+        -43.29842058775894
+      ],
+      [
+        -21.776817325363066,
+        -43.296138804663705
+      ]
+    ]
+  },
+  {
+    "nome": "Milho Branco — Rua A",
+    "id": "milho_branco_rua_a",
+    "png": "ortofotos/milho_branco_rua_a.png",
+    "bounds": [
+      [
+        -21.747617038740703,
+        -43.41157889495901
+      ],
+      [
+        -21.743763844545523,
+        -43.407185785799975
+      ]
+    ]
+  },
+  {
+    "nome": "Eldorado — Arcanjo Miranda",
+    "id": "eldorado_arcanjo",
+    "png": "ortofotos/eldorado_arcanjo.png",
+    "bounds": [
+      [
+        -21.729910309730688,
+        -43.36625293389088
+      ],
+      [
+        -21.72765543047787,
+        -43.36331285836163
+      ]
+    ]
+  },
+  {
+    "nome": "Democrata — Rafael Zacarias",
+    "id": "democrata_rafael",
+    "png": "ortofotos/democrata_rafael.png",
+    "bounds": [
+      [
+        -21.750999368564234,
+        -43.36900387202868
+      ],
+      [
+        -21.748491324504087,
+        -43.36584383862545
+      ]
+    ]
+  }
+]
