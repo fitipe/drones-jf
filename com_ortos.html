@@ -671,8 +671,17 @@ async function ativarOrtofotos() {
       if (this.checked) { entry.layer.addTo(map); entry.visible = true; }
       else { map.removeLayer(entry.layer); entry.visible = false; }
     });
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = o.nome;
+    nameSpan.style.cursor = 'pointer';
+    nameSpan.dataset.idx = i;
+    nameSpan.addEventListener('click', function(e) {
+      e.preventDefault();
+      const bounds = ortoCatalog[this.dataset.idx].bounds;
+      map.fitBounds(bounds, { maxZoom: 18 });
+    });
     label.appendChild(cb);
-    label.appendChild(document.createTextNode(o.nome));
+    label.appendChild(nameSpan);
     ortoTogglesDiv.appendChild(label);
 
     await new Promise(r => setTimeout(r, 0));
